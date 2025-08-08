@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chat App with Users and Mock API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+        }
+
+        #chat-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 10px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        #messages {
+            height: 300px;
+            overflow-y: scroll;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+
+        #message-input {
+            width: 80%;
+            padding: 10px;
+            margin-right: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        #send-btn {
+            padding: 10px 20px;
+            background-color: #5b8a7d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #send-btn:hover {
+            background-color: #49755b;
+        }
+
+        .message {
+            margin: 10px 0;
+        }
+
+        .user-message {
+            text-align: right;
+            background-color: #d1f7d1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .bot-message {
+            text-align: left;
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #username-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #username-input {
+            padding: 10px;
+            width: 200px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        #enter-btn {
+            padding: 10px 20px;
+            background-color: #5b8a7d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #enter-btn:hover {
+            background-color: #49755b;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="username-container">
+        <h2>Enter Your Username</h2>
+        <input type="text" id="username-input" placeholder="Enter a username" />
+        <button id="enter-btn">Enter Chat</button>
+    </div>
+
+    <div id="chat-container" style="display: none;">
+        <div id="messages"></div>
+        <input type="text" id="message-input" placeholder="Type a message..." />
+        <button id="send-btn">Send</button>
+    </div>
+
+    <script>
+        const enterButton = document.getElementById('enter-btn');
+        const usernameInput = document.getElementById('username-input');
+        const chatContainer = document.getElementById('chat-container');
+        const usernameContainer = document.getElementById('username-container');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-btn');
+        const messagesContainer = document.getElementById('messages');
+
+        let username = '';
+
+        // Check if the user already has a username in localStorage
+        if (localStorage.getItem('username')) {
+            username = localStorage.getItem('username');
+            showChatInterface();
+        }
+
+        // Function to show the chat interface after user enters their username
+        function showChatInterface() {
+            usernameContainer.style.display = 'none';
+            chatContainer.style.display = 'block';
+            displayMessages();
+        }
+
+        // Save the username in localStorage and show the chat interface
+        enterButton.addEventListener('click', () => {
+            username = usernameInput.value.trim();
+
+            if (username) {
+                localStorage.setItem('username', username);
+                showChatInterface();
+            } else {
+                alert('Please enter a username.');
+            }
+        });
+
+        // Function to display messages in the chat
+        function displayMessages() {
+            const messages = JSON.parse(localStorage.getItem('messages')) || [];
+            messagesContainer.innerHTML = ''; // Clear current messages
+
+            messages.forEach(msg => {
+                const messageElement = document.createElement('div');
+                messageElement.textContent = `${msg.username}: ${msg.text}`;
+                messageElement.classList.add(msg.sender === 'user' ? 'user-message' : 'bot-message');
+                messagesContainer.appendChild(messageElement);
+            });
+        }
+
+        // Function to handle sending a message
+        function sendMessage() {
+            const message = messageInput.value.trim();
+
+            if (message) {
+                // Get existing messages from localStorage
+                const messages = JSON.parse(localStorage.getItem('messages')) || [];
+
+                // Add the user's message
+                messages.push({ text: message, sender: 'user', username: username });
+
+                // Save the messages back to localStorage
+                localStorage.setItem('messages', JSON.stringify(messages));
+
+                // Clear the input field
+                messageInput.value = '';
+
+                // Display the updated list of messages
+                displayMessages();
+
+                // Call the mock API for the bot's response
+                mockApiResponse(message);
+            }
+        }
+
+        // Mock API function to simulate a bot response
+        function mockApiResponse(userMessage) {
+            setTimeout(() => {
+                const botResponse = `Bot: You said "${userMessage}"`;
+
+                const messages = JSON.parse(localStorage.getItem('messages')) || [];
+
+                // Add the bot's message
+                messages.push({ text: botResponse, sender: 'bot', username: 'Bot' });
+
+                // Save the messages back to localStorage
+                localStorage.setItem('messages', JSON.stringify(messages));
+
+                // Display the updated list of messages
+                displayMessages();
+            }, 1000);  // Simulate 1 second delay for API response
+        }
+
+        // Event listener for the send button
+        sendButton.addEventListener('click', sendMessage);
+
+        // Optional: Allow pressing "Enter" to send the message
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Display messages when the page loads
+        displayMessages();
+    </script>
+
+</body>
+
+</html>

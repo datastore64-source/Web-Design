@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🗞️ Local News App</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #222;
+            color: #fff;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 1rem;
+        }
+
+        input,
+        select,
+        button {
+            padding: 8px;
+            font-size: 16px;
+        }
+
+        #newsContainer {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .article {
+            background: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .article img {
+            width: 100%;
+            border-radius: 5px;
+        }
+
+        .article h3 {
+            margin: 0.5rem 0;
+        }
+
+        .article p {
+            font-size: 14px;
+        }
+
+        .article a {
+            display: inline-block;
+            margin-top: 0.5rem;
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        .bookmark-btn {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #ff9800;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>🗞️ Local News - India</h1>
+    </header>
+
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="Search news...">
+        <select id="categorySelect">
+            <option value="">All</option>
+            <option value="business">Business</option>
+            <option value="technology">Technology</option>
+            <option value="entertainment">Entertainment</option>
+            <option value="sports">Sports</option>
+            <option value="health">Health</option>
+            <option value="science">Science</option>
+        </select>
+        <button onclick="fetchNews()">🔍 Search</button>
+        <button onclick="showBookmarks()">🔖 Bookmarks</button>
+    </div>
+
+    <main id="newsContainer"></main>
+
+    <!-- Fetches top headlines from India 🇮🇳 using NewsAPI.org
+
+Filter by category (Tech, Business, Sports, etc.) -->
+
+
+
+    <script>
+
+
+        const API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your NewsAPI key
+        const newsContainer = document.getElementById('newsContainer');
+        const searchInput = document.getElementById('searchInput');
+        const categorySelect = document.getElementById('categorySelect');
+
+        function fetchNews() {
+            const query = searchInput.value.trim();
+            const category = categorySelect.value;
+            let url = `https://newsapi.org/v2/top-headlines?country=in&apiKey=${API_KEY}`;
+
+            if (category) url += `&category=${category}`;
+            if (query) url += `&q=${query}`;
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => renderArticles(data.articles))
+                .catch(err => console.error('Fetch error:', err));
+        }
+
+        function renderArticles(articles) {
+            newsContainer.innerHTML = '';
+            const bookmarks = JSON.parse(localStorage.getItem('bookmarked') || '[]');
+
+            articles.forEach(article => {
+                const isBookmarked = bookmarks.some(b => b.url === article.url);
+                const card = document.createElement('div');
+                card.className = 'article';
+                card.innerHTML = `
+          <button class="bookmark-btn" onclick='toggleBookmark(${JSON.stringify(article)}, this)'>
+            ${isBookmarked ? '★' : '☆'}
+          </button>
+          <img src="${article.urlToImage || ''}" alt="news image">
+          <h3>${article.title}</h3>
+          <p>${article.description || ''}</p>
+          <a href="${article.url}" target="_blank">Read more</a>
+        `;
+                newsContainer.appendChild(card);
+            });
+        }
+
+        function toggleBookmark(article, btn) {
+            let bookmarks = JSON.parse(localStorage.getItem('bookmarked') || '[]');
+            const exists = bookmarks.find(b => b.url === article.url);
+            if (exists) {
+                bookmarks = bookmarks.filter(b => b.url !== article.url);
+                btn.innerHTML = '☆';
+            } else {
+                bookmarks.push(article);
+                btn.innerHTML = '★';
+            }
+            localStorage.setItem('bookmarked', JSON.stringify(bookmarks));
+        }
+
+        function showBookmarks() {
+            const bookmarks = JSON.parse(localStorage.getItem('bookmarked') || '[]');
+            renderArticles(bookmarks);
+        }
+
+        fetchNews(); // Initial load
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,65 @@
+<!-- Use Stripe test card: 4242 4242 4242 4242 with any future date, any CVC. -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stripe Checkout</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background: #6772e5;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #5469d4;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Buy Product with Stripe</h1>
+    <p>Product: Awesome T-shirt - $20</p>
+    <button id="checkout-button">Pay with Stripe</button>
+
+    <script>
+        const stripe = Stripe("pk_test_XXXXXXXXXXXXXXXXXXXXXXXX"); // Replace with your own Stripe test key
+
+        document.getElementById("checkout-button").addEventListener("click", function () {
+            stripe.redirectToCheckout({
+                lineItems: [{
+                    price_data: {
+                        currency: 'usd',
+                        product_data: {
+                            name: 'Awesome T-shirt',
+                        },
+                        unit_amount: 2000, // $20 in cents
+                    },
+                    quantity: 1,
+                }],
+                mode: 'payment',
+                successUrl: 'https://example.com/success.html',
+                cancelUrl: 'https://example.com/cancel.html',
+            }).then(function (result) {
+                if (result.error) {
+                    alert(result.error.message);
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

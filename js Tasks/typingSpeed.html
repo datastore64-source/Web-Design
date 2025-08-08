@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Typing Speed Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .box {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        #quote {
+            font-size: 20px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        #highlightedQuote span.correct {
+            color: green;
+        }
+
+        #highlightedQuote span.incorrect {
+            color: red;
+        }
+
+        textarea {
+            width: 100%;
+            font-size: 18px;
+            padding: 12px;
+            box-sizing: border-box;
+            resize: none;
+        }
+
+        #stats {
+            margin-top: 20px;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 25px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #countdownOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 60px;
+            font-weight: bold;
+            color: #333;
+            z-index: 2;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="box">
+        <div id="countdownOverlay">3</div>
+        <h2>⌨️ Typing Speed Test</h2>
+        <div id="quote">Loading quote...</div>
+        <div id="highlightedQuote"></div>
+        <textarea id="inputBox" rows="5" placeholder="Start typing here..." disabled></textarea>
+        <div id="stats"></div>
+        <div id="highScore"></div>
+        <button onclick="resetTest()">🔁 Try Again</button>
+    </div>
+
+    <script>
+        const quoteEl = document.getElementById("quote");
+        const inputBox = document.getElementById("inputBox");
+        const statsEl = document.getElementById("stats");
+        const highlightedQuote = document.getElementById("highlightedQuote");
+        const countdownOverlay = document.getElementById("countdownOverlay");
+        const highScoreEl = document.getElementById("highScore");
+
+        let selectedQuote = "";
+        let startTime = null;
+        let highScore = localStorage.getItem('highWPM') || 0;
+
+        const quotes = [
+            "The quick brown fox jumps over the lazy dog.",
+            "Typing fast requires both accuracy and practice.",
+            "JavaScript is a powerful language for web development.",
+            "Consistent effort leads to great results.",
+            "Believe in yourself and all that you are."
+        ];
+
+        async function getRandomQuote() {
+            try {
+                const res = await fetch("https://api.quotable.io/random");
+                const data = await res.json();
+                return data.content;
+            } catch (e) {
+                return quotes[Math.floor(Math.random() * quotes.length)];
+            }
+        }
+
+        function showCountdown(seconds) {
+            countdownOverlay.textContent = seconds;
+            if (seconds === 0) {
+                countdownOverlay.style.display = "none";
+                inputBox.disabled = false;
+                inputBox.focus();
+                startTime = new Date();
+            } else {
+                setTimeout(() => showCountdown(seconds - 1), 1000);
+            }
+        }
+
+        function displayQuote() {
+            highlightedQuote.innerHTML = [...selectedQuote].map(c => `<span>${c}</span>`).join("");
+        }
+
+        inputBox.addEventListener("input", () => {
+            const typed = inputBox.value;
+            const quoteSpans = highlightedQuote.querySelectorAll("span");
+
+            let correctChars = 0;
+            [...typed].forEach((char, i) => {
+                if (char === selectedQuote[i]) {
+                    quoteSpans[i].className = "correct";
+                    correctChars++;
+                } else {
+                    quoteSpans[i].className = "incorrect";
+                }
+            });
+
+            for (let j = typed.length; j < quoteSpans.length; j++) {
+                quoteSpans[j].className = "";
+            }
+
+            const totalTime = (new Date() - startTime) / 1000 / 60;
+            const words = typed.trim().split(/\s+/).length;
+            const wpm = Math.round(words / totalTime || 0);
+            const accuracy = Math.round((correctChars / typed.length) * 100 || 0);
+
+            statsEl.innerHTML = `⏱ Time: ${totalTime.toFixed(2)} min<br>💨 WPM: ${wpm}<br>🎯 Accuracy: ${accuracy}%`;
+
+            if (typed.length >= selectedQuote.length) {
+                inputBox.disabled = true;
+                if (wpm > highScore) {
+                    localStorage.setItem('highWPM', wpm);
+                    highScoreEl.textContent = `🏆 New High Score: ${wpm} WPM!`;
+                } else {
+                    highScoreEl.textContent = `🥇 High Score: ${highScore} WPM`;
+                }
+            }
+        });
+
+        async function resetTest() {
+            inputBox.value = '';
+            inputBox.disabled = true;
+            statsEl.innerHTML = '';
+            highScoreEl.innerHTML = `🥇 High Score: ${highScore} WPM`;
+            selectedQuote = await getRandomQuote();
+            quoteEl.textContent = selectedQuote;
+            displayQuote();
+            countdownOverlay.style.display = "flex";
+            showCountdown(3);
+        }
+
+        // Initial load
+        window.onload = resetTest;
+    </script>
+</body>
+
+</html>

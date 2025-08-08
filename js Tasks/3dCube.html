@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Interactive 3D Cube</title>
+    <style>
+        body {
+            margin: 0;
+            background: #111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            perspective: 1000px;
+            user-select: none;
+        }
+
+
+        .wrapper {
+            width: 200px;
+            height: 200px;
+            position: relative;
+        }
+
+        .scene {
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.1s linear;
+        }
+
+        .face {
+
+
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            line-height: 200px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #fff;
+            backface-visibility: hidden;
+        }
+
+        .front {
+            transform: translateZ(100px);
+            background: red;
+        }
+
+        .back {
+            transform: rotateY(180deg) translateZ(100px);
+            background: blue;
+        }
+
+        .right {
+            transform: rotateY(90deg) translateZ(100px);
+            background: green;
+        }
+
+        .left {
+            transform: rotateY(-90deg) translateZ(100px);
+            background: orange;
+        }
+
+        .top {
+            transform: rotateX(90deg) translateZ(100px);
+            background: purple;
+        }
+
+        .bottom {
+            transform: rotateX(-90deg) translateZ(100px);
+            background: yellow;
+        }
+
+        .paused::after {
+            content: '⏸';
+            color: white;
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper" id="cubeWrapper">
+        <div class="scene" id="cube">
+            <div class="face front">Front</div>
+            <div class="face back">Back</div>
+            <div class="face right">Right</div>
+            <div class="face left">Left</div>
+            <div class="face top">Top</div>
+            <div class="face bottom">Bottom</div>
+        </div>
+    </div>
+
+    <script>
+        const cube = document.getElementById('cube');
+        const wrapper = document.getElementById('cubeWrapper');
+
+        let isDragging = false;
+        let lastX, lastY;
+        let rotationX = 0;
+        let rotationY = 0;
+        let autoRotate = true;
+
+        function updateTransform() {
+            cube.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`;
+        }
+
+        function animate() {
+            if (autoRotate && !isDragging) {
+                rotationY += 0.5;
+                rotationX += 0.3;
+                updateTransform();
+            }
+            requestAnimationFrame(animate);
+        }
+
+        wrapper.addEventListener('mousedown', e => {
+            isDragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        document.addEventListener('mousemove', e => {
+            if (isDragging) {
+                let dx = e.clientX - lastX;
+                let dy = e.clientY - lastY;
+                rotationY += dx * 0.5;
+                rotationX -= dy * 0.5;
+                updateTransform();
+                lastX = e.clientX;
+                lastY = e.clientY;
+            }
+        });
+
+        // Toggle auto-rotate on click
+        wrapper.addEventListener('click', () => {
+            autoRotate = !autoRotate;
+            wrapper.classList.toggle('paused', !autoRotate);
+        });
+
+        animate(); // Start animation
+    </script>
+</body>
+
+</html>

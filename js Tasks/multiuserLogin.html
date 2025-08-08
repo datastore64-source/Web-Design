@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Role-Based Auth with Register</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 30px;
+            background: #f0f0f0;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        input,
+        button,
+        select {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            font-size: 16px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 30px;
+            top: 37px;
+            cursor: pointer;
+        }
+
+        .relative {
+            position: relative;
+        }
+
+        .link {
+            text-align: center;
+            color: blue;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .admin-section,
+        .user-section,
+        .manager-section,
+        .editor-section {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .logout {
+            background: red;
+            color: white;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 🔐 Login -->
+    <div class="container" id="loginPage">
+        <h2>Login</h2>
+        <input type="text" id="loginUsername" placeholder="Username" />
+        <div class="relative">
+            <input type="password" id="loginPassword" placeholder="Password" />
+            <span class="toggle-password" onclick="togglePassword('loginPassword')">👁️</span>
+        </div>
+        <button onclick="login()">Login</button>
+        <p id="loginError" style="color:red;"></p>
+        <div class="link" onclick="togglePages('registerPage')">Don't have an account? Register</div>
+    </div>
+
+    <!-- 📝 Registration -->
+    <div class="container" id="registerPage" style="display:none;">
+        <h2>Register</h2>
+        <input type="text" id="regUsername" placeholder="Choose Username" />
+        <div class="relative">
+            <input type="password" id="regPassword" placeholder="Choose Password" />
+            <span class="toggle-password" onclick="togglePassword('regPassword')">👁️</span>
+        </div>
+        <select id="regRole">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+            <option value="editor">Editor</option>
+            <option value="viewer">Viewer</option>
+        </select>
+        <button onclick="register()">Register</button>
+        <p id="regError" style="color:red;"></p>
+        <div class="link" onclick="togglePages('loginPage')">Already have an account? Login</div>
+    </div>
+
+    <!-- 🧾 Dashboard -->
+    <div class="container" id="dashboardPage" style="display:none;">
+        <h2>Welcome, <span id="loggedInUser"></span>!</h2>
+        <p>Role: <strong id="userRole"></strong></p>
+        <button class="logout" onclick="logout()">Logout</button>
+
+        <div class="admin-section" id="adminSection">
+            <h3>🔒 Admin Panel</h3>
+            <p>Only visible to admin users.</p>
+        </div>
+
+        <div class="manager-section" id="managerSection">
+            <h3>📋 Manager Panel</h3>
+            <p>Only for managers.</p>
+        </div>
+
+        <div class="editor-section" id="editorSection">
+            <h3>✏️ Editor Panel</h3>
+            <p>Editor privileges.</p>
+        </div>
+
+        <div class="user-section" id="userSection">
+            <h3>👤 User Panel</h3>
+            <p>Visible to all logged-in users.</p>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_USERS = [
+            { username: 'admin', password: 'f66d5a7a3b4ed4ff3f6f646cb15bfa1613deea6cdb3b9579e58a3efc6ae944a3', role: 'admin' }, // 'admin123'
+            { username: 'john', password: '70b21b017735d94fdc04a22f2f7ab5a9bdce245a0f18793841f219fa2f036d1b', role: 'user' } // 'john123'
+        ];
+
+        let users = JSON.parse(localStorage.getItem('users')) || DEFAULT_USERS;
+        let currentUser = JSON.parse(sessionStorage.getItem('authUser'));
+
+        function togglePassword(id) {
+            const input = document.getElementById(id);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function togglePages(showId) {
+            ['loginPage', 'registerPage', 'dashboardPage'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            document.getElementById(showId).style.display = 'block';
+        }
+
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function login() {
+            const uname = document.getElementById('loginUsername').value.trim().toLowerCase();
+            const pwd = document.getElementById('loginPassword').value;
+            const hashedPwd = await hashPassword(pwd);
+
+            const user = users.find(u => u.username.toLowerCase() === uname && u.password === hashedPwd);
+
+            if (user) {
+                sessionStorage.setItem('authUser', JSON.stringify(user));
+                showDashboard();
+            } else {
+                document.getElementById('loginError').textContent = 'Invalid credentials!';
+            }
+        }
+
+        async function register() {
+            const uname = document.getElementById('regUsername').value.trim();
+            const pwd = document.getElementById('regPassword').value.trim();
+            const role = document.getElementById('regRole').value;
+
+            if (!uname || !pwd) {
+                document.getElementById('regError').textContent = 'All fields required!';
+                return;
+            }
+
+            if (users.some(u => u.username.toLowerCase() === uname.toLowerCase())) {
+                document.getElementById('regError').textContent = 'Username already exists!';
+                return;
+            }
+
+            const hashedPwd = await hashPassword(pwd);
+            const newUser = { username: uname, password: hashedPwd, role };
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            document.getElementById('regError').textContent = '';
+            alert("Registration successful! Please login.");
+            togglePages('loginPage');
+        }
+
+        function showDashboard() {
+            const user = JSON.parse(sessionStorage.getItem('authUser'));
+            if (!user) return;
+
+            togglePages('dashboardPage');
+            document.getElementById('loggedInUser').textContent = user.username;
+            document.getElementById('userRole').textContent = user.role;
+
+            // Hide all role-specific sections
+            ['adminSection', 'managerSection', 'editorSection'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+
+            // Show based on role
+            if (user.role === 'admin') document.getElementById('adminSection').style.display = 'block';
+            if (user.role === 'manager') document.getElementById('managerSection').style.display = 'block';
+            if (user.role === 'editor') document.getElementById('editorSection').style.display = 'block';
+
+            // Common section
+            document.getElementById('userSection').style.display = 'block';
+        }
+
+        function logout() {
+            sessionStorage.clear();
+            togglePages('loginPage');
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('loginError').textContent = '';
+        }
+
+        if (currentUser) showDashboard();
+    </script>
+
+</body>
+
+</html>

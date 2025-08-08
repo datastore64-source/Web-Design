@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>ToDo App with Voice Control</title>
+    <!-- <style>
+        body {
+            font-family: sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        body.dark {
+            background: #121212;
+            color: #fff;
+        }
+
+        #todo-container {
+            max-width: 500px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s;
+        }
+
+        body.dark #todo-container {
+            background: #1e1e1e;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+        }
+
+        button {
+            padding: 10px;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            padding: 10px;
+            margin-top: 10px;
+            background: #f9f9f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 5px;
+            cursor: move;
+            transition: all 0.3s;
+        }
+
+        body.dark li {
+            background: #2e2e2e;
+        }
+
+        li.completed span {
+            text-decoration: line-through;
+            color: #888;
+        }
+
+        .actions button {
+            margin-left: 5px;
+        }
+
+        .left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #selectAllContainer {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .drag-over {
+            border: 2px dashed #999;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .highlight {
+            background-color: yellow;
+            font-weight: bold;
+        }
+
+        .empty-state {
+            text-align: center;
+            margin-top: 20px;
+            color: gray;
+        }
+
+        .dark-mode-toggle {
+            float: right;
+            margin-bottom: 10px;
+        }
+    </style> -->
+</head>
+
+<body>
+
+    <!-- Try These Voice Commands:
+“Add task go shopping”
+
+“Delete task shopping”
+
+“Edit task shopping to study”
+
+“Search study” -->
+    <div id="todo-container">
+        <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌗 Toggle Dark Mode</button>
+        <h2>📝 ToDo App</h2>
+
+        <input type="text" id="taskInput" placeholder="Enter a task" />
+        <button onclick="addTask()">Add</button>
+        <button onclick="deleteSelected()">Delete Selected</button>
+        <button onclick="startVoiceRecognition()">🎙️ Voice Command</button>
+
+        <div id="selectAllContainer">
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)">
+            <label for="selectAll">Select All</label>
+        </div>
+
+        <input type="text" id="searchInput" placeholder="Search tasks..." oninput="renderTasks()" />
+        <ul id="taskList"></ul>
+        <div id="emptyState" class="empty-state"></div>
+    </div>
+
+    <script>
+        let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+        let draggedIndex = null;
+
+        function saveTasks() {
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle("dark");
+        }
+
+        function renderTasks() {
+            const list = document.getElementById("taskList");
+            const searchTerm = document.getElementById("searchInput").value.toLowerCase() || "";
+            list.innerHTML = "";
+
+            let taskCount = 0;
+
+            tasks.forEach((task, index) => {
+                if (!task.text.toLowerCase().includes(searchTerm)) return;
+
+                taskCount++;
+
+                const li = document.createElement("li");
+                li.className = task.completed ? "completed" : "";
+                li.draggable = true;
+                li.dataset.index = index;
+
+                const leftDiv = document.createElement("div");
+                leftDiv.className = "left";
+
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.className = "taskCheck";
+                checkbox.dataset.index = index;
+                checkbox.onchange = updateSelectAll;
+
+                const span = document.createElement("span");
+                span.innerHTML = highlightSearch(task.text, searchTerm);
+                span.ondblclick = () => enableEdit(span, index);
+
+                leftDiv.appendChild(checkbox);
+                leftDiv.appendChild(span);
+
+                const actionsDiv = document.createElement("div");
+                actionsDiv.className = "actions";
+
+                const editBtn = document.createElement("button");
+                editBtn.textContent = "✏️";
+                editBtn.onclick = () => editTask(index);
+
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "❌";
+                deleteBtn.onclick = () => deleteTask(index);
+
+                actionsDiv.appendChild(editBtn);
+                actionsDiv.appendChild(deleteBtn);
+
+                li.appendChild(leftDiv);
+                li.appendChild(actionsDiv);
+
+                li.addEventListener("dragstart", dragStart);
+                li.addEventListener("dragover", dragOver);
+                li.addEventListener("drop", dropTask);
+                li.addEventListener("dragend", dragEnd);
+
+                list.appendChild(li);
+            });
+
+            document.getElementById("emptyState").textContent = taskCount === 0 ? "No tasks found." : "";
+            updateSelectAll();
+        }
+
+        function highlightSearch(text, term) {
+            if (!term) return text;
+            return text.replace(new RegExp(`(${term})`, "gi"), "<span class='highlight'>$1</span>");
+        }
+
+        function enableEdit(span, index) {
+            const input = document.createElement("input");
+            input.type = "text";
+            input.value = tasks[index].text;
+            input.onblur = () => {
+                if (input.value.trim()) {
+                    tasks[index].text = input.value.trim();
+                    saveTasks();
+                    renderTasks();
+                }
+            };
+            input.onkeypress = e => {
+                if (e.key === "Enter") input.blur();
+            };
+            span.replaceWith(input);
+            input.focus();
+        }
+
+        function addTask() {
+            const input = document.getElementById("taskInput");
+            const text = input.value.trim();
+            if (text !== "") {
+                tasks.push({ text, completed: false });
+                input.value = "";
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        function toggleTask(index) {
+            tasks[index].completed = !tasks[index].completed;
+            saveTasks();
+            renderTasks();
+        }
+
+        function deleteTask(index) {
+            tasks.splice(index, 1);
+            saveTasks();
+            renderTasks();
+        }
+
+        function editTask(index) {
+            const newText = prompt("Edit task:", tasks[index].text);
+            if (newText !== null && newText.trim() !== "") {
+                tasks[index].text = newText.trim();
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        function deleteSelected() {
+            const checkboxes = document.querySelectorAll(".taskCheck:checked");
+            const indexesToDelete = Array.from(checkboxes).map(cb => +cb.dataset.index);
+            tasks = tasks.filter((_, i) => !indexesToDelete.includes(i));
+            document.getElementById("selectAll").checked = false;
+            saveTasks();
+            renderTasks();
+        }
+
+        function toggleSelectAll(selectAllCheckbox) {
+            const allTaskCheckboxes = document.querySelectorAll(".taskCheck");
+            allTaskCheckboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+        }
+
+        function updateSelectAll() {
+            const all = document.querySelectorAll(".taskCheck");
+            const checked = document.querySelectorAll(".taskCheck:checked");
+            const selectAll = document.getElementById("selectAll");
+            selectAll.checked = all.length > 0 && checked.length === all.length;
+        }
+
+        function dragStart(e) {
+            draggedIndex = +e.target.dataset.index;
+            e.target.classList.add("dragging");
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add("drag-over");
+        }
+
+        function dragEnd(e) {
+            e.target.classList.remove("dragging");
+            document.querySelectorAll(".drag-over").forEach(el => el.classList.remove("drag-over"));
+        }
+
+        function dropTask(e) {
+            e.preventDefault();
+            const droppedIndex = +e.currentTarget.dataset.index;
+            if (draggedIndex === droppedIndex) return;
+
+            const draggedTask = tasks[draggedIndex];
+            tasks.splice(draggedIndex, 1);
+            tasks.splice(droppedIndex, 0, draggedTask);
+            saveTasks();
+            renderTasks();
+        }
+
+        // ✅ Speech API Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = "en-US";
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        function speak(text) {
+            const synth = window.speechSynthesis;
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = "en-US";
+            synth.speak(utter);
+        }
+
+        function handleVoiceCommand(command) {
+            const lower = command.toLowerCase();
+            console.log("Voice Command:", lower);
+
+            if (lower.startsWith("add task")) {
+                const task = lower.replace("add task", "").trim();
+                if (task) {
+                    tasks.push({ text: task, completed: false });
+                    saveTasks();
+                    renderTasks();
+                    speak(`Task added: ${task}`);
+                } else {
+                    speak("Task not recognized");
+                }
+            } else if (lower.startsWith("delete task")) {
+                const term = lower.replace("delete task", "").trim();
+                const before = tasks.length;
+                tasks = tasks.filter(t => !t.text.toLowerCase().includes(term));
+                const deleted = before - tasks.length;
+                saveTasks();
+                renderTasks();
+                speak(deleted > 0 ? `Deleted ${deleted} task` : `No task found to delete`);
+            } else if (lower.startsWith("edit task")) {
+                const parts = lower.match(/edit task (.+) to (.+)/);
+                if (parts && parts[1] && parts[2]) {
+                    const from = parts[1].trim();
+                    const to = parts[2].trim();
+                    const index = tasks.findIndex(t => t.text.toLowerCase().includes(from));
+                    if (index !== -1) {
+                        tasks[index].text = to;
+                        saveTasks();
+                        renderTasks();
+                        speak(`Task updated to: ${to}`);
+                    } else {
+                        speak("Task not found to edit");
+                    }
+                } else {
+                    speak("Invalid edit command format");
+                }
+            } else if (lower.startsWith("search")) {
+                const term = lower.replace("search", "").trim();
+                document.getElementById("searchInput").value = term;
+                renderTasks();
+                speak(`Searching for ${term}`);
+            } else {
+                speak("Unrecognized command. Please say add, delete, edit, or search followed by your task.");
+            }
+        }
+
+        function startVoiceRecognition() {
+            recognition.start();
+        }
+
+        recognition.onresult = function (event) {
+            const transcript = event.results[0][0].transcript;
+            handleVoiceCommand(transcript);
+        };
+
+        recognition.onerror = function (event) {
+            speak("Voice error: " + event.error);
+        };
+
+        renderTasks();
+    </script>
+</body>
+
+</html>

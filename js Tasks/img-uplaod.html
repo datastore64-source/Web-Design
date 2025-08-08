@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload with Validation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 10px;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        input[type="file"] {
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #fileDetails {
+            margin-top: 20px;
+            background-color: #e2e2e2;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        img {
+            margin-top: 10px;
+            max-width: 100%;
+            max-height: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Upload Your Image</h1>
+
+    <!-- File Upload Form -->
+    <input type="file" id="fileInput" />
+    <button onclick="uploadFile()">Upload</button>
+
+    <h3>Uploaded Image Details</h3>
+    <div id="fileDetails"></div>
+    <div id="imagePreview"></div>
+
+    <script>
+        // Maximum file size (in bytes)
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+        // Allowed image file types (mime types)
+        const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0]; // Get the first selected file
+
+            // Check if no file is selected
+            if (!file) {
+                alert("No file selected. Please select an image to upload.");
+                return;
+            }
+
+            // Validate that the file is an image
+            if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+                alert("Invalid file type. Please select a JPEG, PNG, or GIF image.");
+                return;
+            }
+
+            // Validate file size
+            if (file.size > MAX_FILE_SIZE) {
+                alert(`File is too large. Maximum size allowed is ${MAX_FILE_SIZE / 1024 / 1024}MB.`);
+                return;
+            }
+
+            // If validation passes, display file details
+            const fileDetails = document.getElementById('fileDetails');
+            fileDetails.innerHTML = `
+                <p><strong>File Name:</strong> ${file.name}</p>
+                <p><strong>File Size:</strong> ${file.size} bytes</p>
+                <p><strong>File Type:</strong> ${file.type}</p>
+            `;
+
+            // Display the uploaded image preview
+            const imagePreview = document.getElementById('imagePreview');
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                imagePreview.innerHTML = `<img src="${e.target.result}" alt="Image Preview" />`;
+            };
+            reader.readAsDataURL(file);
+
+            // Simulate an upload to a server (You can replace this with an actual API call)
+            setTimeout(() => {
+                alert("Image uploaded successfully!");
+            }, 1000);
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Smooth Arc to Checkmark</title>
+    <style>
+        body {
+            background: #02023a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        svg {
+            width: 150px;
+            height: 150px;
+        }
+
+        path {
+            fill: none;
+            stroke: white;
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #0d47a1;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1565c0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <svg viewBox="0 0 100 100">
+        <g id="arc-group">
+            <path id="morph-path" d="M30,50 C35,30 65,30 70,50" />
+        </g>
+    </svg>
+
+    <button onclick="startMorph()">Start Smooth Morph</button>
+
+    <script src="https://unpkg.com/flubber"></script>
+    <script>
+        const path = document.getElementById('morph-path');
+        const group = document.getElementById('arc-group');
+
+        // Open arc shape
+        const arcPath = "M30,50 C35,30 65,30 70,50";
+
+        // Checkmark shape
+        // Drawing a polyline equivalent to the checkmark
+        const checkPath = "M30,50 L45,65 L70,35";
+
+        function startMorph() {
+            spinArc(() => {
+                morphArcToCheck();
+            });
+        }
+
+        function spinArc(callback) {
+            const duration = 1500;
+            const start = performance.now();
+
+            function animate(time) {
+                const t = Math.min(1, (time - start) / duration);
+                const eased = easeInOutQuad(t);
+
+                const rotation = 360 * eased;
+                group.setAttribute("transform", `rotate(${rotation} 50 50)`);
+
+                if (t < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    group.setAttribute("transform", `rotate(0 50 50)`);
+                    callback();
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function morphArcToCheck() {
+            const duration = 800;
+            const start = performance.now();
+
+            const interpolator = flubber.interpolate(
+                arcPath,
+                checkPath,
+                { maxSegmentLength: 2 }
+            );
+
+            function animate(time) {
+                const t = Math.min(1, (time - start) / duration);
+                const eased = easeInOutQuad(t);
+                const newPath = interpolator(eased);
+                path.setAttribute("d", newPath);
+
+                if (t < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function easeInOutQuad(t) {
+            return t < 0.5
+                ? 2 * t * t
+                : -1 + (4 - 2 * t) * t;
+        }
+    </script>
+
+</body>
+
+</html>

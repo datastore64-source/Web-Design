@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Multi-Product Expense Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .input-group,
+        .product-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        input,
+        button,
+        select {
+            padding: 8px;
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        .actions button {
+            margin-right: 5px;
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .btn-remove {
+            background: red;
+        }
+
+        .btn-remove:hover {
+            background: darkred;
+        }
+
+        .btn-pdf {
+            background: green;
+            margin-top: 20px;
+        }
+
+        .btn-pdf:hover {
+            background: darkgreen;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🧾 Multi-Product Expense Tracker</h1>
+
+    <div class="input-group">
+        <input type="date" id="invoiceDate" />
+        <button class="btn" onclick="addProductRow()">➕ Add Product</button>
+        <button class="btn" onclick="saveInvoice()">💾 Save Invoice</button>
+    </div>
+
+    <div id="productsContainer"></div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Products</th>
+                <th>Total</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="invoiceTable"></tbody>
+    </table>
+
+    <button class="btn btn-pdf" onclick="generatePDF()">📄 Download PDF Summary</button>
+
+    <canvas id="chart" height="100"></canvas>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        let invoices = JSON.parse(localStorage.getItem('invoices')) || [];
+        let editingIndex = null;
+
+        function addProductRow(name = '', amount = '') {
+            const row = document.createElement('div');
+            row.className = 'product-row';
+            row.innerHTML = `
+      <input type="text" placeholder="Product Name" class="pname" value="${name}">
+      <input type="number" placeholder="Amount" class="pamount" value="${amount}">
+      <button class="btn btn-remove" onclick="this.parentElement.remove()">🗑</button>
+    `;
+            document.getElementById('productsContainer').appendChild(row);
+        }
+
+        function getProducts() {
+            const names = document.querySelectorAll('.pname');
+            const amounts = document.querySelectorAll('.pamount');
+            const products = [];
+
+            for (let i = 0; i < names.length; i++) {
+                const title = names[i].value.trim();
+                const amount = parseFloat(amounts[i].value);
+                if (title && !isNaN(amount)) products.push({ title, amount });
+            }
+
+            return products;
+        }
+
+        function saveInvoice() {
+            const date = document.getElementById('invoiceDate').value;
+            const products = getProducts();
+            if (!date || products.length === 0) return alert("Fill date and at least one product.");
+
+            const total = products.reduce((sum, p) => sum + p.amount, 0);
+            const invoice = { date, products, total };
+
+            if (editingIndex !== null) {
+                invoices[editingIndex] = invoice;
+                editingIndex = null;
+            } else {
+                invoices.push(invoice);
+            }
+
+            localStorage.setItem('invoices', JSON.stringify(invoices));
+            document.getElementById('productsContainer').innerHTML = '';
+            document.getElementById('invoiceDate').value = '';
+            renderInvoices();
+        }
+
+        function renderInvoices() {
+            const table = document.getElementById('invoiceTable');
+            table.innerHTML = '';
+
+            invoices.forEach((inv, idx) => {
+                const productList = inv.products.map(p => `${p.title} (₹${p.amount.toFixed(2)})`).join(", ");
+                const row = `<tr>
+        <td>${idx + 1}</td>
+        <td>${inv.date}</td>
+        <td>${productList}</td>
+        <td>₹${inv.total.toFixed(2)}</td>
+        <td>
+          <button onclick="editInvoice(${idx})">✏️ Edit</button>
+          <button onclick="deleteInvoice(${idx})">🗑️ Delete</button>
+        </td>
+      </tr>`;
+                table.innerHTML += row;
+            });
+
+            renderChart();
+        }
+
+        function editInvoice(index) {
+            const inv = invoices[index];
+            document.getElementById('invoiceDate').value = inv.date;
+            document.getElementById('productsContainer').innerHTML = '';
+            inv.products.forEach(p => addProductRow(p.title, p.amount));
+            editingIndex = index;
+        }
+
+        function deleteInvoice(index) {
+            if (confirm("Delete this invoice?")) {
+                invoices.splice(index, 1);
+                localStorage.setItem('invoices', JSON.stringify(invoices));
+                renderInvoices();
+            }
+        }
+
+        function generatePDF() {
+            const doc = new jsPDF();
+            let y = 20;
+
+            doc.setFontSize(18);
+            doc.text("Expense Invoice Summary", 70, y);
+            y += 10;
+
+            invoices.forEach((inv, i) => {
+                doc.setFontSize(14);
+                doc.text(`Invoice ${i + 1} - Date: ${inv.date}`, 20, y);
+                y += 8;
+
+                doc.setFontSize(12);
+                doc.setFillColor(240);
+                doc.rect(20, y - 5, 170, 8, 'F');
+                doc.text("Product", 25, y);
+                doc.text("Amount (Rs.)", 145, y);
+                y += 8;
+
+                inv.products.forEach(p => {
+                    doc.text(p.title, 25, y);
+                    doc.text(`Rs. ${p.amount.toFixed(2)}`, 145, y);
+                    y += 8;
+                });
+
+                doc.setDrawColor(0);
+                doc.setLineWidth(0.5);
+                doc.line(20, y, 190, y);
+                doc.setFontSize(13);
+                doc.text(`Total: Rs. ${inv.total.toFixed(2)}`, 145, y + 6);
+                y += 16;
+
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+            });
+
+            doc.save("expense-invoice-summary.pdf");
+        }
+
+
+        function renderChart() {
+            const ctx = document.getElementById('chart').getContext('2d');
+            if (window.expChart) window.expChart.destroy();
+
+            window.expChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: invoices.map((i, idx) => `Invoice ${idx + 1}`),
+                    datasets: [{
+                        label: 'Total ₹',
+                        data: invoices.map(i => i.total),
+                        backgroundColor: '#007bff'
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        renderInvoices();
+    </script>
+</body>
+
+</html>

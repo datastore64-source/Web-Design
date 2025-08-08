@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Razorpay Cart</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+
+        .product-card {
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            width: 300px;
+            margin: auto;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background: #008cba;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0079a1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="product-card">
+        <h2>Wireless Headphones</h2>
+        <p>Price: ₹999</p>
+        <button id="rzp-cart">Buy Now</button>
+    </div>
+
+    <script>
+        document.getElementById("rzp-cart").onclick = function (e) {
+            const productName = "Wireless Headphones";
+            const amountInPaise = 99900;
+
+            var options = {
+                "key": "rzp_test_XXXXXXXXXXXXXXXXXX", // Replace with your Razorpay Test Key
+                "amount": amountInPaise,
+                "currency": "INR",
+                "name": "Gadget Store",
+                "description": productName,
+                "image": "https://yourdomain.com/logo.png", // Optional logo
+                "handler": function (response) {
+                    alert("🎉 Payment successful!\nPayment ID: " + response.razorpay_payment_id);
+                    window.location.href = "success.html"; // Optional redirect
+                },
+                "prefill": {
+                    "name": "Customer Name",
+                    "email": "customer@example.com",
+                    "contact": "9123456780"
+                },
+                "theme": {
+                    "color": "#3399cc"
+                }
+            };
+
+            var rzp = new Razorpay(options);
+            rzp.open();
+            e.preventDefault();
+        }
+    </script>
+</body>
+
+</html>

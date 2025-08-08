@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Image Slider with Captions</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: #fff;
+        }
+
+        .slider-container {
+            width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+            scroll-snap-type: x mandatory;
+        }
+
+        .slides {
+            display: flex;
+            flex-wrap: nowrap;
+            width: max-content;
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            scroll-snap-align: start;
+        }
+
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .caption,
+        .extra-text {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            text-align: center;
+        }
+
+        .caption {
+            bottom: 80px;
+            font-size: 20px;
+        }
+
+        .extra-text {
+            bottom: 40px;
+            font-size: 16px;
+            color: #ccc;
+        }
+
+        .controls {
+            position: fixed;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            transform: translateY(-50%);
+            padding: 0 20px;
+            pointer-events: none;
+        }
+
+        .controls button {
+            pointer-events: all;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            font-size: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .dots {
+            text-align: center;
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+        }
+
+        .dot {
+            display: inline-block;
+            height: 12px;
+            width: 12px;
+            background-color: #bbb;
+            border-radius: 50%;
+            margin: 0 4px;
+            cursor: pointer;
+        }
+
+        .dot.active {
+            background-color: #0f0;
+        }
+
+        #counter {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 16px;
+            color: #aaa;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="slider-container">
+        <div class="slides" id="slides"></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="prevSlide()">⬅️ Prev</button>
+        <button onclick="nextSlide()">Next ➡️</button>
+    </div>
+
+    <div class="dots" id="dots"></div>
+    <div id="counter"></div>
+
+    <script>
+        const slidesData = [
+            {
+                image: "https://via.placeholder.com/1200x600/ff4444/fff?text=Slide+1",
+                caption: "Caption for Slide 1",
+                text: "Additional info about Slide 1 goes here."
+            },
+            {
+                image: "https://via.placeholder.com/1200x600/44ff44/fff?text=Slide+2",
+                caption: "Caption for Slide 2",
+                text: "This slide showcases nature's beauty in green."
+            },
+            {
+                image: "https://via.placeholder.com/1200x600/4444ff/fff?text=Slide+3",
+                caption: "Caption for Slide 3",
+                text: "Experience the calm of oceanic blue tones."
+            }
+        ];
+
+        const slidesWrapper = document.getElementById("slides");
+        const dotsContainer = document.getElementById("dots");
+        const counter = document.getElementById("counter");
+        let currentIndex = 0;
+
+        function createSlides() {
+            slidesData.forEach((slide, i) => {
+                const slideDiv = document.createElement("div");
+                slideDiv.className = "slide";
+                slideDiv.innerHTML = `
+        <img src="${slide.image}" alt="Slide image">
+        <div class="caption">${slide.caption}</div>
+        <div class="extra-text">${slide.text}</div>
+      `;
+                slidesWrapper.appendChild(slideDiv);
+            });
+        }
+
+        function updateSlider() {
+            const dots = document.querySelectorAll(".dot");
+            dots.forEach(dot => dot.classList.remove("active"));
+            if (dots[currentIndex]) dots[currentIndex].classList.add("active");
+            counter.textContent = `Slide ${currentIndex + 1} of ${slidesData.length}`;
+            document.querySelector('.slider-container').scrollTo({
+                left: currentIndex * window.innerWidth,
+                behavior: 'smooth'
+            });
+        }
+
+        function nextSlide() {
+            currentIndex = (currentIndex + 1) % slidesData.length;
+            updateSlider();
+        }
+
+        function prevSlide() {
+            currentIndex = (currentIndex - 1 + slidesData.length) % slidesData.length;
+            updateSlider();
+        }
+
+        function createDots() {
+            slidesData.forEach((_, i) => {
+                const dot = document.createElement("span");
+                dot.classList.add("dot");
+                dot.addEventListener("click", () => {
+                    currentIndex = i;
+                    updateSlider();
+                });
+                dotsContainer.appendChild(dot);
+            });
+        }
+
+        // Initialize
+        createSlides();
+        createDots();
+        updateSlider();
+    </script>
+
+</body>
+
+</html>

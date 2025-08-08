@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Async/Await App</title>
+    <style>
+        #output {
+            white-space: pre-wrap;
+            margin-top: 20px;
+            min-height: 150px;
+        }
+
+        .spinner {
+            font-size: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        button {
+            margin: 8px 5px;
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>🔐 Fake Login</h2>
+    <input type="text" id="username" placeholder="Enter username" />
+    <button onclick="fakeLogin()">Login</button>
+    <p id="loginStatus">Not logged in</p>
+
+    <hr>
+
+    <h2>👥 User Profiles</h2>
+    <button onclick="getUsers()">🔄 Load Users</button>
+    <button onclick="loadMore()">📥 Load More</button>
+    <button onclick="cancelFetch()">❌ Cancel</button>
+    <button onclick="clearCache()">🗑 Clear Cache</button>
+
+    <div id="output">Click "Load Users" to begin...</div>
+
+    <script>
+        let controller;
+        let currentPage = 1;
+        const USERS_PER_PAGE = 5;
+        let token = null;
+
+        function timeoutPromise(ms) {
+            return new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("⏱ Timeout: Server took too long")), ms)
+            );
+        }
+
+        async function fetchUserWithTimeout(id, controller) {
+            const fetchPromise = fetch(`https://jsonplaceholder.typicode.com/users/${id}`, {
+                signal: controller.signal,
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
+
+            const response = await Promise.race([fetchPromise, timeoutPromise(5000)]);
+            if (!response.ok) {
+                throw new Error(`HTTP Error ${response.status}`);
+            }
+            return response.json();
+        }
+
+        async function getUsers(loadMore = false) {
+            const output = document.getElementById("output");
+            output.innerHTML = `<span class="spinner">⏳</span> Loading users...`;
+
+            if (controller) controller.abort();
+            controller = new AbortController();
+
+            try {
+                const cacheKey = `users_page_${currentPage}`;
+                const cached = localStorage.getItem(cacheKey);
+                if (cached && !loadMore) {
+                    const users = JSON.parse(cached);
+                    output.innerHTML = formatUsers(users) + "\n📦 (Loaded from cache)";
+                    return;
+                }
+
+                const fetchPromises = [];
+                const startId = (currentPage - 1) * USERS_PER_PAGE + 1;
+                for (let i = startId; i < startId + USERS_PER_PAGE; i++) {
+                    fetchPromises.push(fetchUserWithTimeout(i, controller));
+                }
+
+                const users = await Promise.all(fetchPromises);
+                localStorage.setItem(cacheKey, JSON.stringify(users));
+                output.innerHTML = formatUsers(users) + `\n💾 (Fetched Page ${currentPage})`;
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    output.innerHTML = `🚫 Fetch canceled by user.`;
+                } else {
+                    output.innerHTML = `❌ Error: ${error.message}\n\n<button onclick="getUsers()">🔁 Retry</button>`;
+                }
+                console.error("Fetch failed:", error);
+            }
+        }
+
+        function loadMore() {
+            currentPage++;
+            getUsers(true);
+        }
+
+        function cancelFetch() {
+            if (controller) controller.abort();
+        }
+
+        function clearCache() {
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('users_page_')) localStorage.removeItem(key);
+            });
+            document.getElementById("output").innerText = "🗑 Cache cleared.";
+            currentPage = 1;
+        }
+
+        function formatUsers(users) {
+            return users.map(u => `👤 ${u.name} - ${u.email} (${u.company.name})`).join("\n");
+        }
+
+        function fakeLogin() {
+            const uname = document.getElementById("username").value.trim();
+            if (uname) {
+                // Simulate fake token
+                token = btoa(`${uname}:secure_token`);
+                document.getElementById("loginStatus").innerText = `🔐 Logged in as ${uname}`;
+            } else {
+                alert("Enter a username to login.");
+            }
+        }
+
+        // Auto-load page 1 on refresh if cached
+        window.addEventListener("load", () => {
+            const cached = localStorage.getItem("users_page_1");
+            if (cached) {
+                document.getElementById("output").innerText = formatUsers(JSON.parse(cached)) + "\n📦 (Auto-loaded from cache)";
+            }
+        });
+    </script>
+    <!-- 
+    Click Load Users, then Cancel to test abort.
+
+Disconnect internet to test fallback + retry.
+
+Refresh page to see cached data instantly. -->
+
+</body>
+
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Enhanced Product Store</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .filters div {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .products {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .product {
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .product img {
+            width: 100%;
+            height: 150px;
+            object-fit: contain;
+        }
+
+        .pagination {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            margin: 0 5px;
+            padding: 5px 10px;
+        }
+
+        .pagination span {
+            margin: 0 5px;
+            font-weight: bold;
+        }
+
+        select {
+            width: 100%;
+            padding: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>🛍️ Enhanced Product Store</h2>
+
+    <div class="filters">
+        <div>
+            <label><strong>Search Name:</strong></label><br />
+            <input type="text" id="searchInput" placeholder="Search by name">
+        </div>
+
+        <div>
+            <label><strong>Price Range:</strong></label><br />
+            <input type="range" id="priceRange" min="0" max="100000" value="100000" step="100">
+            <span id="priceValue">Max ₹100000</span>
+        </div>
+
+        <div>
+            <label><strong>Category:</strong></label><br />
+            <select id="categoryFilter">
+                <option value="">All Categories</option>
+            </select>
+        </div>
+
+        <div>
+            <label><strong>Sort By:</strong></label><br />
+            <select id="sortBy">
+                <option value="">Default</option>
+                <option value="price-asc">Price Low to High</option>
+                <option value="price-desc">Price High to Low</option>
+                <option value="rating-desc">Rating High to Low</option>
+            </select>
+        </div>
+
+        <div>
+            <label><strong>Size:</strong></label><br />
+            <label><input type="checkbox" class="size-filter" value="S"> S</label><br />
+            <label><input type="checkbox" class="size-filter" value="M"> M</label><br />
+            <label><input type="checkbox" class="size-filter" value="L"> L</label>
+        </div>
+
+        <div>
+            <label><strong>Color:</strong></label><br />
+            <label><input type="checkbox" class="color-filter" value="Red"> Red</label><br />
+            <label><input type="checkbox" class="color-filter" value="Blue"> Blue</label><br />
+            <label><input type="checkbox" class="color-filter" value="Green"> Green</label>
+        </div>
+    </div>
+
+    <div class="products" id="productList"></div>
+    <div class="pagination" id="pagination"></div>
+
+    <script>
+        const API_URL = 'https://dummyjson.com/products?limit=100';
+        const productList = document.getElementById('productList');
+        const pagination = document.getElementById('pagination');
+        const searchInput = document.getElementById('searchInput');
+        const priceRange = document.getElementById('priceRange');
+        const priceValue = document.getElementById('priceValue');
+        const sizeFilters = document.querySelectorAll('.size-filter');
+        const colorFilters = document.querySelectorAll('.color-filter');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const sortBy = document.getElementById('sortBy');
+
+        let products = [];
+        let currentPage = 1;
+        const perPage = 8;
+
+        const mockSizes = ['S', 'M', 'L'];
+        const mockColors = ['Red', 'Blue', 'Green'];
+
+        async function fetchProducts() {
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            products = data.products.map(p => ({
+                ...p,
+                size: mockSizes[Math.floor(Math.random() * mockSizes.length)],
+                color: mockColors[Math.floor(Math.random() * mockColors.length)],
+                price: Math.round(p.price * 90)
+            }));
+
+            populateCategoryFilter();
+            renderProducts();
+        }
+
+        function populateCategoryFilter() {
+            const categories = [...new Set(products.map(p => p.category))];
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+                categoryFilter.appendChild(opt);
+            });
+        }
+
+        function renderProducts() {
+            const filtered = applyFilters(products);
+            const sorted = applySorting(filtered);
+
+            const totalPages = Math.ceil(sorted.length / perPage);
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+
+            const start = (currentPage - 1) * perPage;
+            const pageProducts = sorted.slice(start, start + perPage);
+
+            productList.innerHTML = '';
+            pageProducts.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'product';
+                el.innerHTML = `
+          <img src="${p.thumbnail}" alt="${p.title}">
+          <h4>${p.title.slice(0, 25)}...</h4>
+          <p>₹${p.price}</p>
+          <p>Size: ${p.size}, Color: ${p.color}</p>
+          <p>Rating: ${p.rating}</p>
+        `;
+                productList.appendChild(el);
+            });
+
+            // Pagination with ellipsis
+            pagination.innerHTML = '';
+
+            const createBtn = (text, page, disabled = false) => {
+                const btn = document.createElement('button');
+                btn.textContent = text;
+                btn.disabled = disabled;
+                btn.addEventListener('click', () => {
+                    currentPage = page;
+                    renderProducts();
+                });
+                return btn;
+            };
+
+            // Prev
+            pagination.appendChild(createBtn('Prev', currentPage - 1, currentPage === 1));
+
+            const totalPagesToShow = 2;
+            const showRange = (from, to) => {
+                for (let i = from; i <= to; i++) {
+                    const btn = createBtn(i, i, i === currentPage);
+                    pagination.appendChild(btn);
+                }
+            };
+
+            if (totalPages <= 7) {
+                showRange(1, totalPages);
+            } else {
+                if (currentPage <= 3) {
+                    showRange(1, 3);
+                    pagination.appendChild(document.createElement('span')).textContent = '...';
+                    pagination.appendChild(createBtn(totalPages, totalPages));
+                } else if (currentPage >= totalPages - 2) {
+                    pagination.appendChild(createBtn(1, 1));
+                    pagination.appendChild(document.createElement('span')).textContent = '...';
+                    showRange(totalPages - 2, totalPages);
+                } else {
+                    pagination.appendChild(createBtn(1, 1));
+                    pagination.appendChild(document.createElement('span')).textContent = '...';
+                    showRange(currentPage - 1, currentPage + 1);
+                    pagination.appendChild(document.createElement('span')).textContent = '...';
+                    pagination.appendChild(createBtn(totalPages, totalPages));
+                }
+            }
+
+            // Next
+            pagination.appendChild(createBtn('Next', currentPage + 1, currentPage === totalPages));
+        }
+
+        function applyFilters(data) {
+            const search = searchInput.value.toLowerCase();
+            const maxPrice = parseInt(priceRange.value);
+            const selectedSizes = Array.from(sizeFilters).filter(cb => cb.checked).map(cb => cb.value);
+            const selectedColors = Array.from(colorFilters).filter(cb => cb.checked).map(cb => cb.value);
+            const selectedCategory = categoryFilter.value;
+
+            return data.filter(p => {
+                const matchName = p.title.toLowerCase().includes(search);
+                const matchPrice = p.price <= maxPrice;
+                const matchSize = selectedSizes.length ? selectedSizes.includes(p.size) : true;
+                const matchColor = selectedColors.length ? selectedColors.includes(p.color) : true;
+                const matchCategory = selectedCategory ? p.category === selectedCategory : true;
+
+                return matchName && matchPrice && matchSize && matchColor && matchCategory;
+            });
+        }
+
+        function applySorting(data) {
+            const sortOption = sortBy.value;
+            const sorted = [...data];
+            if (sortOption === 'price-asc') sorted.sort((a, b) => a.price - b.price);
+            else if (sortOption === 'price-desc') sorted.sort((a, b) => b.price - a.price);
+            else if (sortOption === 'rating-desc') sorted.sort((a, b) => b.rating - a.rating);
+            return sorted;
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', () => { currentPage = 1; renderProducts(); });
+        priceRange.addEventListener('input', () => {
+            priceValue.textContent = `Max ₹${priceRange.value}`;
+            currentPage = 1;
+            renderProducts();
+        });
+        categoryFilter.addEventListener('change', () => { currentPage = 1; renderProducts(); });
+        sortBy.addEventListener('change', () => { currentPage = 1; renderProducts(); });
+        sizeFilters.forEach(cb => cb.addEventListener('change', () => { currentPage = 1; renderProducts(); }));
+        colorFilters.forEach(cb => cb.addEventListener('change', () => { currentPage = 1; renderProducts(); }));
+
+        fetchProducts();
+    </script>
+</body>
+
+</html>

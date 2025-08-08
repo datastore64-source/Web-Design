@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Any File Type</title>
+</head>
+
+<body>
+    <h1>Download Any File Type</h1>
+
+    <label for="fileType">Select File Type:</label><br>
+    <select id="fileType">
+        <option value="text">Text File</option>
+        <option value="json">JSON File</option>
+        <option value="image">Image (PNG)</option>
+    </select><br><br>
+
+    <label for="fileContent">Enter Content (or Upload Image):</label><br>
+    <textarea id="fileContent" rows="10" cols="50" placeholder="Enter text content..."></textarea><br><br>
+
+    <label for="imageUpload">Upload Image:</label><br>
+    <input type="file" id="imageUpload" accept="image/*"><br><br>
+
+    <button onclick="downloadFile()">Download File</button>
+
+    <script>
+        function downloadFile() {
+            const fileType = document.getElementById('fileType').value;  // Get the selected file type
+            const content = document.getElementById('fileContent').value;  // Get the content of the text area
+            const imageInput = document.getElementById('imageUpload');  // Get the uploaded image
+
+            let blob;
+            let fileName = "downloadedFile"; // Default filename
+
+            // Handle Text File
+            if (fileType === 'text') {
+                if (!content) {
+                    alert("Please enter some text content before downloading.");
+                    return;
+                }
+                blob = new Blob([content], { type: 'text/plain' });
+                fileName = "userTextFile.txt";
+
+                // Handle JSON File
+            } else if (fileType === 'json') {
+                if (!content) {
+                    alert("Please enter valid JSON content.");
+                    return;
+                }
+                try {
+                    JSON.parse(content);  // Validate JSON format
+                } catch (e) {
+                    alert("Invalid JSON format.");
+                    return;
+                }
+                blob = new Blob([content], { type: 'application/json' });
+                fileName = "data.json";
+
+                // Handle Image File
+            } else if (fileType === 'image') {
+                if (imageInput.files.length === 0) {
+                    alert("Please upload an image.");
+                    return;
+                }
+                const file = imageInput.files[0];
+                blob = file;  // Use the uploaded image file as the Blob
+                fileName = file.name;  // Use the original file name
+            }
+
+            // Create a link element to trigger the download
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;  // Set the file name for download
+            link.click();  // Trigger the download
+        }
+    </script>
+</body>
+
+</html>

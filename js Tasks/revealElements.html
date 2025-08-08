@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>IntersectionObserver Scroll Reveal</title>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 0;
+            padding: 0;
+            background: #f4f4f4;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s ease;
+        }
+
+        .reveal.show {
+            opacity: 1;
+            transform: none;
+        }
+
+        /* Animation Variants */
+        .fade-up {
+            transform: translateY(40px);
+        }
+
+        .fade-left {
+            transform: translateX(-40px);
+        }
+
+        .fade-right {
+            transform: translateX(40px);
+        }
+
+        .box {
+            width: 80%;
+            margin: 100px auto;
+            padding: 60px;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="box reveal fade-up" style="transition-delay: 0s;">👋 Welcome</div>
+    <div class="box reveal fade-left" style="transition-delay: 0.2s;">📄 About</div>
+    <div class="box reveal fade-right" style="transition-delay: 0.4s;">🧩 Services</div>
+    <div class="box reveal fade-up" style="transition-delay: 0.6s;">📞 Contact</div>
+
+    <div class="box reveal fade-up" style="transition-delay: 0s;">👋 Welcome</div>
+    <div class="box reveal fade-left" style="transition-delay: 0.2s;">📄 About</div>
+    <div class="box reveal fade-right" style="transition-delay: 0.4s;">🧩 Services</div>
+    <div class="box reveal fade-up" style="transition-delay: 0.6s;">📞 Contact</div>
+
+
+    <div class="box reveal fade-up" style="transition-delay: 0s;">👋 Welcome</div>
+    <div class="box reveal fade-left" style="transition-delay: 0.2s;">📄 About</div>
+    <div class="box reveal fade-right" style="transition-delay: 0.4s;">🧩 Services</div>
+    <div class="box reveal fade-up" style="transition-delay: 0.6s;">📞 Contact</div>
+
+    <script>
+        const revealElements = document.querySelectorAll('.reveal');
+
+        const observer = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('show');
+
+                    // Uncomment below to trigger only once
+                    obs.unobserve(entry.target);
+                } else {
+                    // If you want to re-trigger when it re-enters, comment this out
+                    entry.target.classList.remove('show');
+                }
+            });
+        }, {
+            threshold: 0.2
+        });
+
+        revealElements.forEach(el => observer.observe(el));
+    </script>
+
+</body>
+
+</html>
+<!-- 💡 How to Customize:
+Want to... Do This
+🔁 Trigger only once Use observer.unobserve(entry.target) (already added ✅)
+🔄 Trigger every time on scroll Comment out unobserve() line
+🧭 Add fade-left/right Add fade-left or fade-right class
+⏱ Stagger elements Use style="transition-delay: 0.2s" etc.
+🔘 Control animation threshold Adjust threshold: 0.2 (20% visible)
+
+✅ Next Steps (Optional)
+Would you like to:
+
+Dynamically animate items loaded later (e.g. AJAX/React items)?
+
+Add easing/elastic effects (Spring-style)?
+
+Build as a reusable JS function/class? -->

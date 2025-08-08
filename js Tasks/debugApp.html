@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Advanced JS Debugger</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1e1e1e;
+            color: #fff;
+            padding: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #2d2d2d;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 10px;
+            font-size: 16px;
+            resize: vertical;
+        }
+
+        button {
+            margin: 5px;
+            padding: 8px 16px;
+            background: #007acc;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        pre {
+            background: #333;
+            padding: 10px;
+            white-space: pre-wrap;
+            border: 1px solid #555;
+        }
+
+        .error {
+            color: #ff5c57;
+        }
+
+        .output {
+            color: #00e676;
+        }
+
+        .highlight-line {
+            background: rgba(255, 0, 0, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <h2>🛠️ Advanced JS Debugger App</h2>
+
+    <textarea id="codeInput" spellcheck="false"></textarea>
+    <br>
+    <button onclick="runCode()">▶ Run</button>
+    <button onclick="autoFix()">🛠 Auto Fix</button>
+    <button onclick="beautify()">✨ Beautify</button>
+    <button onclick="toggleCorrected()">👁 Toggle Corrected</button>
+
+    <h3>⚠️ Errors / Output</h3>
+    <pre id="errorOutput"></pre>
+
+    <h3>📄 Corrected Code (Preview)</h3>
+    <pre id="correctedOutput"></pre>
+
+    <script>
+        const codeInput = document.getElementById('codeInput');
+        const errorOutput = document.getElementById('errorOutput');
+        const correctedOutput = document.getElementById('correctedOutput');
+        let showCorrected = true;
+
+        // Load saved code
+        codeInput.value = localStorage.getItem('js_debug_code') || `let x = 5\nconsole.log(x`;
+
+        function runCode() {
+            const code = codeInput.value;
+            errorOutput.innerHTML = '';
+            console.clear();
+
+            try {
+                let output = captureConsole(() => new Function(code)());
+                errorOutput.innerHTML = '<span class="output">' + output + '</span>';
+            } catch (err) {
+                const line = getErrorLine(err);
+                errorOutput.innerHTML = `<span class="error">${err}</span>` + (line ? `\n🔍 Likely error at line ${line}` : '');
+            }
+
+            // Save to localStorage
+            localStorage.setItem('js_debug_code', code);
+        }
+
+        function getErrorLine(error) {
+            const match = error.stack.match(/<anonymous>:(\d+):/);
+            return match ? match[1] : null;
+        }
+
+        function captureConsole(fn) {
+            const originalLog = console.log;
+            let output = "";
+            console.log = function (...args) {
+                output += args.join(" ") + "\n";
+            };
+            fn();
+            console.log = originalLog;
+            return output;
+        }
+
+        function autoFix() {
+            let code = codeInput.value;
+
+            // Auto insert semicolons
+            code = code.replace(/([^\s;{}\n])\n/g, '$1;\n');
+
+            // Fix unclosed console.log
+            code = code.replace(/console\.log\(([^\)]*)$/g, 'console.log($1)');
+
+            // Balance parentheses
+            code = balanceBrackets(code);
+
+            correctedOutput.textContent = code;
+            if (showCorrected) codeInput.value = code;
+        }
+
+        function balanceBrackets(code) {
+            const open = (code.match(/\(/g) || []).length;
+            const close = (code.match(/\)/g) || []).length;
+            if (open > close) {
+                code += ')'.repeat(open - close);
+            }
+            return code;
+        }
+
+        function beautify() {
+            let code = codeInput.value;
+            try {
+                const beautified = js_beautify(code, { indent_size: 2 });
+                codeInput.value = beautified;
+                correctedOutput.textContent = beautified;
+            } catch {
+                alert("Error beautifying code.");
+            }
+        }
+
+        function toggleCorrected() {
+            showCorrected = !showCorrected;
+            correctedOutput.style.display = showCorrected ? 'block' : 'none';
+        }
+
+        // Simple beautifier (fallback)
+        function js_beautify(code, options = {}) {
+            const indent = ' '.repeat(options.indent_size || 2);
+            let level = 0;
+            return code
+                .split('\n')
+                .map(line => {
+                    if (line.trim().endsWith('}')) level--;
+                    const result = indent.repeat(level) + line.trim();
+                    if (line.trim().endsWith('{')) level++;
+                    return result;
+                })
+                .join('\n');
+        }
+    </script>
+</body>
+
+</html>

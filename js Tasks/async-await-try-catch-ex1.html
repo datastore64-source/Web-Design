@@ -1,0 +1,192 @@
+<!-- 🔧 Backend Used
+We're using:
+
+perl
+Copy
+Edit
+POST https://reqres.in/api/login
+BODY: { "email": "eve.holt@reqres.in", "password": "cityslicka" }
+It returns a fake token like:
+
+json
+Copy
+Edit
+{ "token": "QpwL5tke4Pnpja7X4" }
+🚀 Updated Frontend Code (Real Auth + Loader + Persistent Session)
+html
+Copy
+Edit -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>JWT Auth App with Persistent Session</title>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 0;
+            padding: 20px;
+        }
+
+        input,
+        button {
+            padding: 10px;
+            margin: 5px 0;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        #loaderOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loaderOverlay">Loading...</div>
+
+    <div id="loginSection">
+        <h2>🔐 Login</h2>
+        <input type="email" id="email" placeholder="Email" value="eve.holt@reqres.in" />
+        <input type="password" id="password" placeholder="Password" value="cityslicka" />
+        <button onclick="login()">Login</button>
+        <p id="loginError" style="color:red;"></p>
+    </div>
+
+    <div id="dashboardSection" style="display:none;">
+        <h2>👋 Welcome Back!</h2>
+        <p><strong>Token:</strong> <span id="tokenDisplay"></span></p>
+        <button onclick="logout()">Logout</button>
+        <button onclick="fetchData()">Fetch Secure Data</button>
+        <div id="secureData" style="margin-top:10px;"></div>
+    </div>
+
+    <script>
+        const loader = document.getElementById("loaderOverlay");
+
+        function showLoader(show) {
+            loader.style.display = show ? "flex" : "none";
+        }
+
+        async function login() {
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const errorEl = document.getElementById("loginError");
+            errorEl.textContent = "";
+
+            if (!email || !password) {
+                errorEl.textContent = "Please enter email and password.";
+                return;
+            }
+
+            showLoader(true);
+            try {
+                const res = await fetch("https://reqres.in/api/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Login failed");
+
+                // Store token and expiry (1 hour)
+                localStorage.setItem("token", data.token);
+                sessionStorage.setItem("expiresAt", Date.now() + 60 * 60 * 1000);
+
+                showDashboard();
+            } catch (err) {
+                errorEl.textContent = err.message;
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        function showDashboard() {
+            const token = localStorage.getItem("token");
+            if (!token || isSessionExpired()) return;
+
+            document.getElementById("loginSection").style.display = "none";
+            document.getElementById("dashboardSection").style.display = "block";
+            document.getElementById("tokenDisplay").textContent = token;
+        }
+
+        function logout() {
+            localStorage.removeItem("token");
+            sessionStorage.removeItem("expiresAt");
+            document.getElementById("loginSection").style.display = "block";
+            document.getElementById("dashboardSection").style.display = "none";
+            document.getElementById("secureData").textContent = "";
+        }
+
+        function isSessionExpired() {
+            const expiry = parseInt(sessionStorage.getItem("expiresAt"), 10);
+            return Date.now() > expiry;
+        }
+
+        async function fetchData() {
+            showLoader(true);
+            try {
+                const token = localStorage.getItem("token");
+                if (!token) throw new Error("No token found. Please login.");
+
+                const res = await fetch("https://jsonplaceholder.typicode.com/posts/1", {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                const data = await res.json();
+                document.getElementById("secureData").textContent =
+                    `Fetched Post:\n${JSON.stringify(data, null, 2)}`;
+            } catch (err) {
+                document.getElementById("secureData").textContent = "❌ " + err.message;
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        // Auto-login on page load if session is still valid
+        window.addEventListener("load", () => {
+            if (localStorage.getItem("token") && !isSessionExpired()) {
+                showDashboard();
+            } else {
+                logout();
+            }
+        });
+    </script>
+
+</body>
+
+</html>
+<!-- 🔍 Feature Summary:
+Feature ✅ Done
+✅ Login with mock API ✔️
+✅ JWT token storage ✔️
+✅ Token expiry tracking ✔️
+✅ Persistent login across reloads ✔️
+✅ Loader overlay ✔️
+✅ Secured fetch with token header ✔️
+
+🧪 Testing It
+Try invalid login (wrong email/pass)
+
+Refresh page — still logged in? (if within 1 hr)
+
+Wait >1 hr → session auto expires
+
+Click “Logout” → clears everything
+
+Disable network → check error handling -->

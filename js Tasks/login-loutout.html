@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login/Logout Example (Real-World Simulation)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 10px;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        input {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #logoutForm {
+            margin-top: 20px;
+        }
+
+        #loginForm {
+            margin-top: 20px;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Login/Logout Example (Real-World Simulation)</h1>
+
+    <!-- Login Form -->
+    <div id="loginForm">
+        <input type="text" id="username" placeholder="Enter username" />
+        <input type="password" id="password" placeholder="Enter password" />
+        <button onclick="login()">Login</button>
+        <p id="errorMessage" class="error" style="display:none;"></p>
+    </div>
+
+    <!-- Logout Button (Initially hidden) -->
+    <div id="logoutForm" style="display:none;">
+        <p>Welcome, <span id="userGreeting"></span></p>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <script>
+        // Simulated user database (In a real app, this data would come from an API or database)
+        const usersDatabase = [
+            { username: "user1", password: "pass123" },
+            { username: "user2", password: "password456" },
+        ];
+
+        // Function to handle login
+        function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            // Simple authentication logic (mimicking API authentication)
+            const user = usersDatabase.find(u => u.username === username && u.password === password);
+
+            if (user) {
+                // Simulate saving the user's session (In real-world apps, you would save it in localStorage or a session cookie)
+                sessionStorage.setItem("isLoggedIn", "true");
+                sessionStorage.setItem("username", username);
+
+                // Show logout form and user greeting
+                document.getElementById("loginForm").style.display = "none";
+                document.getElementById("logoutForm").style.display = "block";
+                document.getElementById("userGreeting").innerText = username;
+
+                // Clear any previous error message
+                document.getElementById("errorMessage").style.display = "none";
+            } else {
+                // Show error message if authentication fails
+                document.getElementById("errorMessage").innerText = "Invalid username or password!";
+                document.getElementById("errorMessage").style.display = "block";
+            }
+        }
+
+        // Function to handle logout
+        function logout() {
+            // Simulate clearing the user's session
+            sessionStorage.removeItem("isLoggedIn");
+            sessionStorage.removeItem("username");
+
+            // Show login form again
+            document.getElementById("loginForm").style.display = "block";
+            document.getElementById("logoutForm").style.display = "none";
+
+            // Clear the username and password fields
+            document.getElementById("username").value = "";
+            document.getElementById("password").value = "";
+        }
+
+        // On page load, check if the user is already logged in (from sessionStorage)
+        window.onload = function () {
+            const isLoggedIn = sessionStorage.getItem("isLoggedIn");
+            const username = sessionStorage.getItem("username");
+
+            if (isLoggedIn === "true") {
+                document.getElementById("loginForm").style.display = "none";
+                document.getElementById("logoutForm").style.display = "block";
+                document.getElementById("userGreeting").innerText = username;
+            } else {
+                document.getElementById("loginForm").style.display = "block";
+                document.getElementById("logoutForm").style.display = "none";
+            }
+        };
+    </script>
+</body>
+
+</html>

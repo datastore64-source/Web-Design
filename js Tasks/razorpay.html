@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Razorpay Checkout</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background: #008cba;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0079a1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 🧪 Test Razorpay Payment
+Use Razorpay’s test card:
+
+Card: 4111 1111 1111 1111
+
+Exp: Any future date
+
+CVV: Any 3 digits
+
+OTP: Use 123456 -->
+    <h1>Buy Product with Razorpay</h1>
+    <p>Product: Stylish Wallet - ₹500</p>
+    <button id="rzp-button">Pay with Razorpay</button>
+
+    <script>
+        document.getElementById("rzp-button").onclick = function (e) {
+            var options = {
+                "key": "rzp_test_XXXXXXXXXXXXXXXXXX", // Replace with your Razorpay Test Key
+                "amount": "50000", // Amount in paise = ₹500
+                "currency": "INR",
+                "name": "My Store",
+                "description": "Stylish Wallet",
+                "image": "https://yourdomain.com/logo.png",
+                "handler": function (response) {
+                    alert("Payment Successful!\nPayment ID: " + response.razorpay_payment_id);
+                },
+                "prefill": {
+                    "name": "Test User",
+                    "email": "test@example.com",
+                    "contact": "9123456780"
+                },
+                "theme": {
+                    "color": "#3399cc"
+                }
+            };
+
+            var rzp1 = new Razorpay(options);
+            rzp1.open();
+            e.preventDefault();
+        }
+
+
+    </script>
+</body>
+
+</html>

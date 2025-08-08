@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Checkout - Razorpay</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        .cart-item {
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .cart-item h4 {
+            margin: 0 0 5px;
+        }
+
+        #pay-btn {
+            background-color: #008cba;
+            color: white;
+            padding: 10px 20px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #pay-btn:hover {
+            background: #0079a1;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Your Cart</h2>
+    <div id="cart-container"></div>
+    <h3>Total: ₹<span id="total-amount">0</span></h3>
+    <button id="pay-btn">Pay with Razorpay</button>
+
+    <script>
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const container = document.getElementById('cart-container');
+        const totalAmountElement = document.getElementById('total-amount');
+
+        let total = 0;
+
+        cart.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'cart-item';
+            itemDiv.innerHTML = `
+        <h4>${item.name}</h4>
+        <p>₹${item.price} x ${item.quantity}</p>
+        <p><strong>Subtotal:</strong> ₹${item.price * item.quantity}</p>
+      `;
+            container.appendChild(itemDiv);
+            total += item.price * item.quantity;
+        });
+
+        totalAmountElement.textContent = total;
+
+        document.getElementById('pay-btn').onclick = function () {
+            const options = {
+                key: "rzp_test_XXXXXXXXXXXXXXXXXX", // 🔁 Replace with your test key
+                amount: total * 100, // in paise
+                currency: "INR",
+                name: "Your Store",
+                description: "Purchase from cart",
+                handler: function (response) {
+                    alert("✅ Payment Successful!\nPayment ID: " + response.razorpay_payment_id);
+                    localStorage.removeItem('cart');
+                    window.location.href = "thankyou.html";
+                },
+                prefill: {
+                    name: "Customer Name",
+                    email: "customer@example.com",
+                    contact: "9876543210"
+                },
+                theme: {
+                    color: "#3399cc"
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+        };
+    </script>
+</body>
+
+</html>

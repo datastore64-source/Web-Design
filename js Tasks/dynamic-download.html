@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download File with Dynamic Content</title>
+</head>
+
+<body>
+    <h1>Download File with Dynamic Content</h1>
+
+    <label for="fileContent">Enter Text to Download as File:</label><br>
+    <textarea id="fileContent" rows="10" cols="50" placeholder="Write something..."></textarea><br><br>
+
+    <button onclick="downloadFile()">Download Text File</button>
+
+    <script>
+        function downloadFile() {
+            // Get the content from the textarea
+            const content = document.getElementById('fileContent').value;
+
+            // Check if the textarea is empty
+            if (!content) {
+                alert("Please enter some text before downloading.");
+                return;
+            }
+
+            // Create a Blob with the content and specify the MIME type
+            const blob = new Blob([content], { type: 'text/plain' });
+
+            // Create a link element to trigger the download
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+
+            // Set the filename for the downloaded file
+            link.download = "userTextFile.txt";  // You can also dynamically change this if needed
+
+            // Trigger the download by simulating a click
+            link.click();
+        }
+    </script>
+</body>
+
+</html>

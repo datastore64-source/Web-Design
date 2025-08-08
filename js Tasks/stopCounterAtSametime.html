@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Synchronized Counters</title>
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            padding: 50px;
+        }
+
+        .counter {
+            font-size: 40px;
+            margin: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="counter" id="c1">0</div>
+    <div class="counter" id="c2">0</div>
+    <div class="counter" id="c3">0</div>
+
+    <script>
+        const targets = [653, 86, 45];
+        const ids = ['c1', 'c2', 'c3'];
+        const duration = 1000; // milliseconds
+        const start = performance.now();
+
+        function update() {
+            const now = performance.now();
+            const progress = Math.min((now - start) / duration, 1);
+
+            ids.forEach((id, i) => {
+                const val = Math.round(targets[i] * progress);
+                document.getElementById(id).textContent = val;
+            });
+
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            }
+        }
+
+        requestAnimationFrame(update);
+    </script>
+
+</body>
+
+</html>

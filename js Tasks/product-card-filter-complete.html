@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Product Store</title>
+    <style>
+        :root {
+            --bg: #f5f5f5;
+            --text: #000;
+            --card: #fff;
+        }
+
+        body.dark {
+            --bg: #1e1e1e;
+            --text: #f5f5f5;
+            --card: #2c2c2c;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .toggle-theme {
+            float: right;
+            margin-top: -50px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            background: #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .filters div {
+            background: var(--card);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .products {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .product {
+            background: var(--card);
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .product img {
+            width: 100%;
+            height: 150px;
+            object-fit: contain;
+        }
+
+        .stars {
+            color: gold;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .pagination {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            background: white;
+            cursor: pointer;
+        }
+
+        .pagination button.active {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+
+        .pagination span {
+            margin: 0 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>🛍️ Enhanced Product Store</h2>
+    <button class="toggle-theme" onclick="toggleTheme()">Toggle Theme</button>
+    <div class="tabs" id="categoryTabs"></div>
+    <div class="filters">
+        <div>
+            <label><strong>Search Name:</strong></label><br />
+            <input type="text" id="searchInput" placeholder="Search by name">
+        </div>
+        <div>
+            <label><strong>Price Range:</strong></label><br />
+            <input type="range" id="priceRange" min="0" max="100000" value="100000" step="100">
+            <span id="priceValue">Max ₹100000</span>
+        </div>
+        <div>
+            <label><strong>Brand:</strong></label><br />
+            <select id="brandFilter">
+                <option value="">All Brands</option>
+            </select>
+        </div>
+        <div>
+            <label><strong>Rating ≥</strong></label><br />
+            <select id="ratingFilter">
+                <option value="0">All</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+            </select>
+        </div>
+    </div>
+    <div class="products" id="productList"></div>
+    <div class="pagination" id="pagination"></div>
+
+    <script>
+        const API_URL = 'https://dummyjson.com/products?limit=100';
+        const productList = document.getElementById('productList');
+        const pagination = document.getElementById('pagination');
+        const searchInput = document.getElementById('searchInput');
+        const priceRange = document.getElementById('priceRange');
+        const priceValue = document.getElementById('priceValue');
+        const brandFilter = document.getElementById('brandFilter');
+        const ratingFilter = document.getElementById('ratingFilter');
+        const categoryTabs = document.getElementById('categoryTabs');
+
+        let products = [], currentPage = 1, perPage = 8, currentCategory = '';
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+        }
+
+        async function fetchProducts() {
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            products = data.products.map(p => ({
+                ...p,
+                price: Math.round(p.price * 90)
+            }));
+            buildFilters();
+            buildTabs();
+            renderProducts();
+        }
+
+        function buildFilters() {
+            const brands = [...new Set(products.map(p => p.brand))];
+            brands.forEach(brand => {
+                const opt = document.createElement('option');
+                opt.value = brand;
+                opt.textContent = brand;
+                brandFilter.appendChild(opt);
+            });
+        }
+
+        function buildTabs() {
+            const cats = [...new Set(products.map(p => p.category))];
+            categoryTabs.innerHTML = '';
+            const allTab = document.createElement('div');
+            allTab.className = 'tab' + (!currentCategory ? ' active' : '');
+            allTab.textContent = 'All';
+            allTab.onclick = () => { currentCategory = ''; renderProducts(); };
+            categoryTabs.appendChild(allTab);
+            cats.forEach(cat => {
+                const tab = document.createElement('div');
+                tab.className = 'tab' + (cat === currentCategory ? ' active' : '');
+                tab.textContent = cat;
+                tab.onclick = () => { currentCategory = cat; renderProducts(); };
+                categoryTabs.appendChild(tab);
+            });
+        }
+
+        function renderStars(rating, readonly = true) {
+            let html = '<div class="stars">';
+            for (let i = 1; i <= 5; i++) {
+                html += `<span data-star="${i}">${i <= rating ? '★' : '☆'}</span>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderProducts() {
+            const filtered = applyFilters(products);
+            const totalPages = Math.ceil(filtered.length / perPage);
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+            const start = (currentPage - 1) * perPage;
+            const pageProducts = filtered.slice(start, start + perPage);
+
+            productList.innerHTML = '';
+            pageProducts.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'product';
+                el.innerHTML = `
+          <img src="${p.thumbnail}" alt="${p.title}">
+          <h4>${p.title.slice(0, 25)}...</h4>
+          <p>₹${p.price}</p>
+          <p>Brand: ${p.brand}</p>
+          ${renderStars(Math.round(p.rating))}`;
+                productList.appendChild(el);
+            });
+
+            // Add click handlers to stars
+            document.querySelectorAll('.stars span').forEach(star => {
+                star.addEventListener('click', () => {
+                    const parent = star.parentElement;
+                    const val = +star.getAttribute('data-star');
+                    parent.querySelectorAll('span').forEach((s, i) => {
+                        s.textContent = i < val ? '★' : '☆';
+                    });
+                });
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            renderPagination(totalPages);
+            buildTabs();
+        }
+
+        function renderPagination(totalPages) {
+            pagination.innerHTML = '';
+            const createBtn = (text, page, dis = false, act = false) => {
+                const btn = document.createElement('button');
+                btn.textContent = text;
+                if (dis) btn.disabled = true;
+                if (act) btn.classList.add('active');
+                btn.onclick = () => { currentPage = page; renderProducts(); };
+                return btn;
+            };
+            pagination.appendChild(createBtn('Prev', currentPage - 1, currentPage === 1));
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1)
+                    pagination.appendChild(createBtn(i, i, false, i === currentPage));
+                else if (i === 2 || i === totalPages - 1)
+                    pagination.appendChild(document.createTextNode('...'));
+            }
+            pagination.appendChild(createBtn('Next', currentPage + 1, currentPage === totalPages));
+        }
+
+        function applyFilters(data) {
+            return data.filter(p => {
+                return (
+                    p.title.toLowerCase().includes(searchInput.value.toLowerCase()) &&
+                    p.price <= priceRange.value &&
+                    (!brandFilter.value || p.brand === brandFilter.value) &&
+                    (!currentCategory || p.category === currentCategory) &&
+                    p.rating >= parseFloat(ratingFilter.value)
+                );
+            });
+        }
+
+        searchInput.addEventListener('input', () => { currentPage = 1; renderProducts(); });
+        priceRange.addEventListener('input', () => {
+            priceValue.textContent = `Max ₹${priceRange.value}`;
+            currentPage = 1;
+            renderProducts();
+        });
+        brandFilter.addEventListener('change', () => { currentPage = 1; renderProducts(); });
+        ratingFilter.addEventListener('change', () => { currentPage = 1; renderProducts(); });
+
+        fetchProducts();
+    </script>
+</body>
+
+</html>
